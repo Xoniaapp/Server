@@ -1,7 +1,7 @@
 {
   "name": "@xoniaapp/server",
   "version": "0.0.0",
-  "description": "v4 server build with Node.js & TypeScript.",
+  "description": "Server build with Node.js",
   "main": "./src/index.ts",
   "scripts": {
     "start": "export COMMIT_SHA=$(git rev-parse --short HEAD) NODE_ENV=production && ts-node ./src/index.ts",
