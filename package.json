@@ -4,7 +4,7 @@
     "description": "Server build with Node.js",
     "main": "./src/index.ts",
     "scripts": {
-        "start": "export NODE_ENV=production && ts-node ./src/main.ts",
+        "start": "export NODE_ENV=production && node ./build/main.ts",
         "build": "rm -rf build && pnpm db:generate && tsc",
         "dev": "export NODE_ENV=development && tsx watch ./src/main.ts | pino-pretty",
         "db:push": "prisma db push",
