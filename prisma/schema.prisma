@@ -33,8 +33,18 @@ model User {
   // secrets
   two_fa_key String @unique
 
+  // relationships
+
+  guilds Guild[]
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  user_friend   Friend[] @relation("user_friend")
+  user_friender Friend[] @relation("user_friender")
+
+  received_friend_requests FriendRequests[] @relation("friend_requests_receiver_to_users")
+  sent_friend_requests     FriendRequests[] @relation("friend_requests_sender_id_to_users")
 
   @@index([id, username, email, avatar_hash, banner_hash])
   @@map("users")
@@ -54,11 +64,38 @@ model Guild {
   description String
 
   mfa_level          String // todo
-  nsfw_level         String // otodo
+  nsfw_level         String // todo
   notification_level String // todo
   verification_level String // todo
   features           String // todo
 
+  owner_id String
+
+  // relationships
+  owner User @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+
   @@index([id])
   @@map("guilds")
+}
+
+model Friend {
+  user_id   String
+  friend_id String
+
+  user   User @relation("user_friend", fields: [friend_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_friends_friends")
+  friend User @relation("user_friender", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_friends_user")
+
+  @@id([user_id, friend_id])
+  @@index([user_id, friend_id])
+  @@map("friends")
+}
+
+model FriendRequests {
+  sender_id   String
+  receiver_id String
+
+  receiver User @relation("friend_requests_receiver_to_users", fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_friend_requests_requests")
+  sender   User @relation("friend_requests_sender_id_to_users", fields: [sender_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_friend_requests_user")
+
+  @@id([sender_id, receiver_id])
 }
