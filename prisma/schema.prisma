@@ -11,7 +11,8 @@ datasource db {
 model User {
   id String @id @unique
 
-  username String @unique
+  name     String?
+  username String  @unique
 
   email    String  @unique
   phone    String? @unique
@@ -20,8 +21,9 @@ model User {
   avatar_hash String @unique
   banner_hash String @unique
 
-  banner String
-  avatar String
+  banner       String
+  avatar       String
+  banner_color String?
 
   // flags
   verified Boolean @default(false)
@@ -35,16 +37,20 @@ model User {
 
   // relationships
 
-  guilds Guild[]
+  guilds      Guild[]
+  messages    Message[]
+  attachments Attachment[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  user_friend   Friend[] @relation("user_friend")
-  user_friender Friend[] @relation("user_friender")
-
-  received_friend_requests FriendRequests[] @relation("friend_requests_receiver_to_users")
-  sent_friend_requests     FriendRequests[] @relation("friend_requests_sender_id_to_users")
+  user_friend              Friend[]        @relation("user_friend")
+  user_friender            Friend[]        @relation("user_friender")
+  friend_requests_received FriendRequest[] @relation("friend_requests_receiver_to_users")
+  friend_requests_sent     FriendRequest[] @relation("friend_requests_sender_to_users")
+  dms_received             DM[]            @relation("dm_receiver_to_users")
+  dms_sender               DM[]            @relation("dm_sender_to_users")
+  guild_participations     Member[]        @relation("member_to_guilds")
 
   @@index([id, username, email, avatar_hash, banner_hash])
   @@map("users")
@@ -69,13 +75,130 @@ model Guild {
   verification_level String // todo
   features           String // todo
 
+  // relationships
+  channels Channel[]
+  members  Member[]  @relation("guild_to_members")
+  owner    User      @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+
   owner_id String
 
-  // relationships
-  owner User @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@index([id])
   @@map("guilds")
+}
+
+model Channel {
+  id String @id @unique
+
+  name String
+  type ChannelType
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  is_public Boolean @default(true)
+  is_group  Boolean @default(false)
+  is_dm     Boolean @default(false)
+
+  messages    Message[]
+  attachments Attachment[] // so that we can quickly findout attachments
+
+  guild    Guild?  @relation(fields: [guild_id], references: [id], onDelete: Cascade)
+  guild_id String?
+
+  @@index([id])
+  @@map("channels")
+}
+
+model DM {
+  id         String @id @unique
+  channel_id String @unique
+
+  is_open Boolean @default(true)
+
+  sender_id   String
+  receiver_id String
+
+  receiver User @relation("dm_receiver_to_users", fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dm_receiver")
+  sender   User @relation("dm_sender_to_users", fields: [sender_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dm_sender")
+
+  @@index([id, channel_id, is_open, sender_id, receiver_id])
+  @@map("dm_channels")
+}
+
+model Message {
+  id String @id @unique
+
+  content String // the actual text
+
+  channel Channel @relation(fields: [channel_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+
+  channel_id String
+  user_id    String // sender_id
+
+  attachments Attachment[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([id, channel_id, user_id])
+  @@map("messages")
+}
+
+model Attachment {
+  id String @id @unique
+
+  path String @unique
+
+  name String
+  type String
+  size String
+  hash String @unique
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  message Message @relation(fields: [message_id], references: [id])
+  channel Channel @relation(fields: [channel_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+
+  message_id String
+  channel_id String
+  user_id    String
+
+  @@index([id, message_id, channel_id, user_id])
+  @@map("attachments")
+}
+
+model Member {
+  user_id  String
+  guild_id String
+
+  avatar       String?
+  avatar_hash  String?
+  banner       String?
+  banner_hash  String?
+  banner_color String?
+  name         String?
+  pronouns     String?
+  bio          String?
+  color        String?
+  role         String?
+
+  last_seen  DateTime?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  guild   Guild   @relation("guild_to_members", fields: [guild_id], references: [id], onDelete: Cascade)
+  member  User    @relation("member_to_guilds", fields: [user_id], references: [id], onDelete: Cascade)
+  userId  String?
+  guildId String?
+
+  @@id([user_id, guild_id])
+  @@map("members")
 }
 
 model Friend {
@@ -90,12 +213,23 @@ model Friend {
   @@map("friends")
 }
 
-model FriendRequests {
+model FriendRequest {
   sender_id   String
   receiver_id String
 
-  receiver User @relation("friend_requests_receiver_to_users", fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_friend_requests_requests")
-  sender   User @relation("friend_requests_sender_id_to_users", fields: [sender_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_friend_requests_user")
+  receiver User @relation("friend_requests_receiver_to_users", fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_friend_requests")
+  sender   User @relation("friend_requests_sender_to_users", fields: [sender_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_friend_requests_user")
 
   @@id([sender_id, receiver_id])
+  @@map("friend_requests")
+}
+
+enum ChannelType {
+  voice
+  text
+  announcement
+  rules
+  system
+
+  @@map("channel_type")
 }
