@@ -17,8 +17,6 @@ const loggerConfig = {
 };
 
 const app = fastify({ logger: loggerConfig });
-
 const logger = app.log;
 
-export default logger;
-export { loggerConfig };
+export { loggerConfig, logger };

@@ -5,14 +5,14 @@ import {
 } from 'fastify-type-provider-zod';
 
 import { loggerConfig } from '@/utils/logger';
-import { randId } from '@/utils/randId';
+import { id } from '@/utils/id';
 
 const buildServer = () => {
     const app: FastifyInstance = Fastify({
         trustProxy: true,
         logger: loggerConfig,
         genReqId() {
-            return randId('req', 16);
+            return id.generateCUID('req', 16);
         },
     });
 

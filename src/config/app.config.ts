@@ -14,6 +14,8 @@ const APP_CONSTANTS = {
             `0x${crypto.createHash('sha256').update(os.hostname()).digest('hex')}`
         ) & 0xfffn,
     SEQUENCE_MASK: 0xfffn,
+    JWT_ISSUER: 'xoniaapp',
+    JWT_SECRET: process.env.JWT_SECRET,
 };
 
 export { APP_CONSTANTS };
